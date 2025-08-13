@@ -5,16 +5,7 @@
     </div>
     
     <div class="content">
-      <div v-if="loading" class="welcome-text">
-        <span>Загрузка списка досок...</span>
-        <div class="loader"></div>
-      </div>
-      
-      <div v-else-if="error" class="welcome-text error">
-        {{ error }}
-      </div>
-      
-      <div v-else id="boards-container">
+      <div id="boards-container">
         <div v-for="(boards, category) in groupedBoards" :key="category" class="section">
           <div class="section-title">{{ category }}</div>
           
@@ -42,8 +33,6 @@ export default {
   data() {
     return {
       boards: [],
-      loading: true,
-      error: null,
       categoryOrder: [
         "Тематика", 
         "Японская культура", 
@@ -92,22 +81,16 @@ export default {
   },
   methods: {
     async loadBoards() {
-      this.loading = true;
-      this.error = null;
-      
       try {
-        console.log('Загрузка списка досок...');
-        
-        // Загружаем данные из API Два.ч
-        const { BoardsAPI } = await import('../api/boards.js');
-        this.boards = await BoardsAPI.getBoards();
-        
-        console.log(`Успешно загружено ${this.boards.length} досок`);
+        // Загружаем данные из локального JSON файла
+        const response = await fetch('/boards.json');
+        if (!response.ok) {
+          throw new Error('Ошибка загрузки данных');
+        }
+        const data = await response.json();
+        this.boards = data.boards || [];
       } catch (error) {
         console.error('Ошибка при загрузке досок:', error);
-        this.error = 'Ошибка при загрузке досок: ' + (error.message || 'Неизвестная ошибка');
-      } finally {
-        this.loading = false;
       }
     },
     openBoard(board) {
@@ -152,6 +135,7 @@ export default {
   font-weight: 500;
   margin: 0;
   text-align: center;
+  color: var(--tg-theme-text-color);
 }
 
 .content {
@@ -161,37 +145,6 @@ export default {
   padding-bottom: 20px;
 }
 
-.welcome-text {
-  margin: 20px 16px;
-  font-size: 18px;
-  text-align: center;
-  color: var(--tg-theme-text-color);
-  font-weight: 500;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-
-.error {
-  color: #ff3b30;
-}
-
-.loader {
-  width: 24px;
-  height: 24px;
-  border: 3px solid rgba(0,0,0,0.1);
-  border-radius: 50%;
-  border-top-color: var(--tg-theme-button-color);
-  animation: spin 1s linear infinite;
-  margin-top: 8px;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Стили для секций */
 .section {
   margin-bottom: 24px;
 }
@@ -212,7 +165,6 @@ export default {
   margin: 0 16px;
 }
 
-/* Стили для списка досок */
 .boards-list {
   display: flex;
   flex-direction: column;
@@ -263,11 +215,5 @@ html.dark .board-item:active {
   text-overflow: ellipsis;
   display: block;
   padding-right: 20px;
-}
-
-/* Темная тема */
-html.dark .loader {
-  border-color: rgba(255,255,255,0.1);
-  border-top-color: var(--tg-theme-button-color);
 }
 </style> 

@@ -105,15 +105,12 @@ export default {
     const error = ref(null)
     
     const loadBoardInfo = () => {
-      // Получаем информацию о доске из локального хранилища или из параметров маршрута
       const boardInfo = localStorage.getItem('boardInfo_' + boardId.value)
       if (boardInfo) {
         const info = JSON.parse(boardInfo)
         boardName.value = info.name
-        console.log('Информация о доске загружена:', info)
       } else {
         boardName.value = '/' + boardId.value + '/'
-        console.log('Информация о доске не найдена, используем ID')
       }
     }
     
@@ -122,24 +119,16 @@ export default {
       error.value = null
       
       try {
-        console.log(`Загрузка треда ${threadId.value} с доски ${boardId.value}...`)
-        
-        // Используем наш API сервис
         const { BoardsAPI } = await import('../api/boards.js')
         const data = await BoardsAPI.getThread(boardId.value, threadId.value)
-        
-        console.log('Данные треда получены:', data)
         
         if (data && data.threads && data.threads.length > 0) {
           const thread = data.threads[0]
           
-          // Находим ОП-пост и ответы
           if (thread.posts && thread.posts.length > 0) {
             opPost.value = thread.posts[0]
             threadSubject.value = opPost.value.subject || ''
             replies.value = thread.posts.slice(1)
-            
-            console.log(`Тред загружен: ОП-пост + ${replies.value.length} ответов`)
           } else {
             throw new Error('Тред не содержит постов')
           }
@@ -147,7 +136,6 @@ export default {
           throw new Error('Не удалось загрузить данные треда')
         }
       } catch (error) {
-        console.error('Ошибка при загрузке треда:', error)
         error.value = 'Ошибка при загрузке треда: ' + (error.message || 'Неизвестная ошибка')
       } finally {
         loading.value = false
@@ -172,8 +160,6 @@ export default {
     
     const formatComment = (comment) => {
       if (!comment) return ''
-      
-      // Простая обработка HTML тегов для безопасности
       return comment
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
@@ -187,14 +173,12 @@ export default {
     
     const getThumbnailUrl = (boardId, filename) => {
       if (!filename) return ''
-      // Для превью обычно используется суффикс _thumb
       const nameWithoutExt = filename.replace(/\.[^/.]+$/, '')
       const ext = filename.split('.').pop()
       return `https://2ch.hk/${boardId}/thumb/${nameWithoutExt}_thumb.${ext}`
     }
     
     const handleImageError = (event) => {
-      // Заменяем изображение на заглушку при ошибке загрузки
       event.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDMwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjVGNUY1Ii8+Cjx0ZXh0IHg9IjE1MCIgeT0iMTAwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTk5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7QndCw0LfQsNGA0YvQuSDQstC40LTQtdC7PC90ZXh0Pgo8L3N2Zz4K'
     }
     
@@ -219,7 +203,6 @@ export default {
     }
     
     const goBack = () => {
-      // Возврат на страницу доски
       router.push({
         name: 'board',
         params: {
@@ -231,8 +214,6 @@ export default {
     onMounted(() => {
       boardId.value = route.params.board || props.board
       threadId.value = parseInt(route.params.thread || props.thread)
-      
-      console.log('ThreadView смонтирован:', { boardId: boardId.value, threadId: threadId.value })
       
       loadBoardInfo()
       loadThread()
@@ -448,7 +429,6 @@ html.dark .loader {
   word-wrap: break-word;
 }
 
-/* Адаптивность для мобильных устройств */
 @media (max-width: 480px) {
   .header {
     padding: 12px 16px;
@@ -478,14 +458,5 @@ html.dark .loader {
   .post-comment {
     font-size: 13px;
   }
-}
-
-/* Темная тема */
-html.dark .post {
-  background: var(--tg-theme-secondary-bg-color);
-}
-
-html.dark .op-post {
-  border-color: var(--tg-theme-button-color);
 }
 </style> 

@@ -2,13 +2,12 @@
   <div class="board-view">
     <div class="board-header">
       <h1>{{ boardInfo ? boardInfo.name : boardName }}</h1>
-      <p class="board-description">{{ boardDescription }}</p>
     </div>
     
     <div class="board-content">
       <div v-if="loading" class="loading">
         <div class="loader"></div>
-        <p>Загрузка изображений...</p>
+        <p>Загрузка тредов...</p>
       </div>
       
       <div v-else-if="error" class="error">
@@ -92,44 +91,29 @@ export default {
       return route.params.board || props.board
     })
     
-    const boardDescription = computed(() => {
-      if (boardInfo.value) {
-        return boardInfo.value.description || `Доска изображений: ${boardName.value}`
-      }
-      return `Доска изображений: ${boardName.value}`
-    })
-    
     const loadThreads = async () => {
       try {
         loading.value = true
         error.value = null
         
-        console.log('Загрузка тредов для доски:', boardName.value)
-        
         // Загружаем информацию о доске из localStorage
         const savedBoardInfo = localStorage.getItem('boardInfo_' + boardName.value)
         if (savedBoardInfo) {
           boardInfo.value = JSON.parse(savedBoardInfo)
-          console.log('Информация о доске загружена:', boardInfo.value)
         }
         
         // Загружаем треды с доски через API
         const { BoardsAPI } = await import('../api/boards.js')
         const data = await BoardsAPI.getThreads(boardName.value, 1)
         
-        console.log('Данные тредов получены:', data)
-        
         if (data && data.threads) {
           threads.value = data.threads
           totalPages.value = data.pages || 1
-          console.log(`Загружено ${threads.value.length} тредов, всего страниц: ${totalPages.value}`)
         } else {
           threads.value = []
           totalPages.value = 1
-          console.log('Треды не найдены')
         }
       } catch (err) {
-        console.error('Ошибка при загрузке тредов:', err)
         error.value = 'Ошибка при загрузке тредов: ' + (err.message || 'Неизвестная ошибка')
       } finally {
         loading.value = false
@@ -141,7 +125,6 @@ export default {
     }
     
     const openThread = (threadId) => {
-      console.log('Открытие треда:', threadId)
       router.push({
         name: 'thread',
         params: {
@@ -157,7 +140,6 @@ export default {
     }
     
     const handleImageError = (event) => {
-      // Заменяем изображение на заглушку при ошибке загрузки
       event.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDMwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjVGNUY1Ii8+Cjx0ZXh0IHg9IjE1MCIgeT0iMTAwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTk5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7QndCw0LfQsNGA0YvQuSDQstC40LTQtdC7PC90ZXh0Pgo8L3N2Zz4K'
     }
     
@@ -168,15 +150,12 @@ export default {
         loadingMore.value = true
         const nextPage = currentPage.value + 1
         
-        console.log('Загрузка дополнительных тредов, страница:', nextPage)
-        
         const { BoardsAPI } = await import('../api/boards.js')
         const data = await BoardsAPI.getThreads(boardName.value, nextPage)
         
         if (data && data.threads) {
           threads.value = [...threads.value, ...data.threads]
           currentPage.value = nextPage
-          console.log(`Добавлено ${data.threads.length} тредов`)
         }
       } catch (err) {
         console.error('Ошибка при загрузке дополнительных тредов:', err)
@@ -186,7 +165,6 @@ export default {
     }
     
     onMounted(() => {
-      console.log('BoardView смонтирован, загружаем треды...')
       loadThreads()
     })
     
@@ -195,7 +173,6 @@ export default {
       loading,
       error,
       boardName,
-      boardDescription,
       boardInfo,
       currentPage,
       totalPages,
@@ -231,16 +208,9 @@ export default {
 .board-header h1 {
   font-size: 18px;
   font-weight: 500;
-  margin: 0 0 4px 0;
+  margin: 0;
   text-align: center;
   color: var(--tg-theme-text-color);
-}
-
-.board-description {
-  font-size: 14px;
-  color: var(--tg-theme-hint-color);
-  text-align: center;
-  margin: 0;
 }
 
 .board-content {
@@ -411,7 +381,6 @@ html.dark .loader {
   cursor: not-allowed;
 }
 
-/* Адаптивность для мобильных устройств */
 @media (max-width: 480px) {
   .images-grid {
     grid-template-columns: 1fr;
@@ -430,18 +399,5 @@ html.dark .loader {
   .board-header h1 {
     font-size: 16px;
   }
-  
-  .board-description {
-    font-size: 12px;
-  }
-}
-
-/* Темная тема */
-html.dark .image-item {
-  background: var(--tg-theme-secondary-bg-color);
-}
-
-html.dark .no-image-placeholder {
-  background-color: var(--tg-theme-secondary-bg-color);
 }
 </style> 
