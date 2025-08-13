@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .result {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .success {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        button {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Тест API Два.ч</h1>
+    
+    <div class="test-section">
+        <h3>Тест загрузки досок</h3>
+        <button onclick="testBoards()">Загрузить доски</button>
+        <div id="boards-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Тест загрузки тредов</h3>
+        <input type="text" id="board-id" placeholder="ID доски (например: b)" value="b">
+        <button onclick="testThreads()">Загрузить треды</button>
+        <div id="threads-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Тест загрузки треда</h3>
+        <input type="text" id="thread-id" placeholder="ID треда" value="1">
+        <button onclick="testThread()">Загрузить тред</button>
+        <div id="thread-result" class="result"></div>
+    </div>
+
+    <script type="module">
+        // Импортируем API
+        import { BoardsAPI } from './src/api/boards.js';
+        
+        window.testBoards = async function() {
+            const resultDiv = document.getElementById('boards-result');
+            resultDiv.textContent = 'Загрузка...';
+            resultDiv.className = 'result';
+            
+            try {
+                const boards = await BoardsAPI.getBoards();
+                resultDiv.textContent = `Успешно загружено ${boards.length} досок:\n${JSON.stringify(boards.slice(0, 5), null, 2)}`;
+                resultDiv.className = 'result success';
+            } catch (error) {
+                resultDiv.textContent = `Ошибка: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        };
+        
+        window.testThreads = async function() {
+            const resultDiv = document.getElementById('threads-result');
+            const boardId = document.getElementById('board-id').value;
+            
+            if (!boardId) {
+                resultDiv.textContent = 'Введите ID доски';
+                resultDiv.className = 'result error';
+                return;
+            }
+            
+            resultDiv.textContent = 'Загрузка...';
+            resultDiv.className = 'result';
+            
+            try {
+                const data = await BoardsAPI.getThreads(boardId, 1);
+                resultDiv.textContent = `Успешно загружено ${data.threads.length} тредов:\n${JSON.stringify(data.threads.slice(0, 3), null, 2)}`;
+                resultDiv.className = 'result success';
+            } catch (error) {
+                resultDiv.textContent = `Ошибка: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        };
+        
+        window.testThread = async function() {
+            const resultDiv = document.getElementById('thread-result');
+            const boardId = document.getElementById('board-id').value;
+            const threadId = document.getElementById('thread-id').value;
+            
+            if (!boardId || !threadId) {
+                resultDiv.textContent = 'Введите ID доски и ID треда';
+                resultDiv.className = 'result error';
+                return;
+            }
+            
+            resultDiv.textContent = 'Загрузка...';
+            resultDiv.className = 'result';
+            
+            try {
+                const data = await BoardsAPI.getThread(boardId, threadId);
+                resultDiv.textContent = `Успешно загружен тред:\n${JSON.stringify(data, null, 2)}`;
+                resultDiv.className = 'result success';
+            } catch (error) {
+                resultDiv.textContent = `Ошибка: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        };
+    </script>
+</body>
+</html> 

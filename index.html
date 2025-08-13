@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="/favicon.ico">
+    <!-- Метатеги для iOS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="TG Imgboard">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#2678b6">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="apple-touch-fullscreen" content="yes">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/manifest.json">
+    <title>TG Imgboard</title>
+
+    <!-- Загружаем Telegram WebApp скрипт до основного приложения -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- Встроенные базовые стили -->
+    <style>
+      :root {
+        --tg-theme-bg-color: #ffffff;
+        --tg-theme-text-color: #222222;
+        --tg-theme-hint-color: #999999;
+        --tg-theme-link-color: #2678b6;
+        --tg-theme-button-color: #2678b6;
+        --tg-theme-button-text-color: #ffffff;
+        --tg-theme-secondary-bg-color: #f5f5f5;
+        --safe-area-inset-top: env(safe-area-inset-top, 0px);
+        --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+      }
+      
+      html.dark {
+        --tg-theme-bg-color: #212121;
+        --tg-theme-text-color: #ffffff;
+        --tg-theme-hint-color: #aaaaaa;
+        --tg-theme-link-color: #8cc2ff;
+        --tg-theme-button-color: #2678b6;
+        --tg-theme-button-text-color: #ffffff;
+        --tg-theme-secondary-bg-color: #292929;
+      }
+      
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+      
+      html, body {
+        height: 100%;
+        width: 100%;
+        padding: 0;
+        margin: 0;
+        overflow: hidden;
+      }
+      
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background-color: var(--tg-theme-bg-color);
+        color: var(--tg-theme-text-color);
+        /* Предотвращение прокрутки и полноэкранный режим */
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        overflow: hidden;
+        -webkit-text-size-adjust: 100%;
+        -webkit-font-smoothing: antialiased;
+      }
+      
+      /* Специфичные стили для iOS в полноэкранном режиме */
+      body.ios-fullscreen {
+        /* Убираем отступы для полного экрана */
+        padding: 0;
+        margin: 0;
+        /* Фиксация размера экрана */
+        height: 100vh;
+        height: -webkit-fill-available;
+        width: 100vw;
+        /* Предотвращение скролла */
+        overflow: hidden;
+        -webkit-overflow-scrolling: touch;
+        /* Полноэкранное позиционирование */
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+      }
+      
+      #app {
+        height: 100%;
+        width: 100%;
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+        position: relative;
+      }
+      
+      #app-loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--tg-theme-bg-color);
+        color: var(--tg-theme-text-color);
+        transition: opacity 0.3s;
+        z-index: 9999;
+      }
+      
+      #app-loading.hidden {
+        opacity: 0;
+        pointer-events: none;
+        z-index: -1;
+      }
+      
+      .spinner {
+        width: 40px;
+        height: 40px;
+        margin-bottom: 20px;
+        border: 4px solid rgba(0, 0, 0, 0.1);
+        border-left-color: var(--tg-theme-button-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      
+      html.dark .spinner {
+        border: 4px solid rgba(255, 255, 255, 0.1);
+        border-left-color: var(--tg-theme-link-color);
+      }
+      
+      .loading-text {
+        font-size: 14px;
+        letter-spacing: 1px;
+        font-weight: bold;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      
+      /* Стили для базового интерфейса */
+      .header {
+        background-color: var(--tg-theme-secondary-bg-color);
+        padding: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: relative;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding-top: calc(16px + var(--safe-area-inset-top));
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+      }
+      
+      /* Специальные отступы для iOS в полноэкранном режиме */
+      body.ios-fullscreen .header {
+        padding-top: calc(16px + env(safe-area-inset-top, 20px));
+      }
+      
+      .header h1 {
+        font-size: 18px;
+        font-weight: bold;
+        flex-grow: 1;
+        text-align: center;
+      }
+      
+      /* Специфичные для iOS стили */
+      @supports (-webkit-touch-callout: none) {
+        .content {
+          padding: 0;
+          height: calc(100vh - 49px - env(safe-area-inset-top, 0px));
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+          position: relative;
+          z-index: 1;
+        }
+        
+        /* Для iOS в полноэкранном режиме */
+        body.ios-fullscreen .content {
+          height: calc(100vh - 49px - env(safe-area-inset-top, 20px) - env(safe-area-inset-bottom, 20px));
+        }
+      }
+      
+      /* Стили для других платформ */
+      @supports not (-webkit-touch-callout: none) {
+        .content {
+          padding: 0;
+          height: calc(100% - 49px - var(--safe-area-inset-top));
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+      }
+      
+      /* Стили для списка досок */
+      .boards-list {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 0;
+      }
+      
+      .board-item {
+        padding: 14px 16px;
+        font-size: 16px;
+        font-weight: 400;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        text-align: left;
+        color: var(--tg-theme-text-color);
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+        position: relative;
+      }
+      
+      html.dark .board-item {
+        border-bottom-color: rgba(255,255,255,0.05);
+      }
+      
+      .board-item:last-child {
+        border-bottom: none;
+      }
+      
+      .board-item:active {
+        background-color: rgba(0,0,0,0.05);
+      }
+      
+      html.dark .board-item:active {
+        background-color: rgba(255,255,255,0.05);
+      }
+      
+      .board-item:after {
+        content: '›';
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 20px;
+        color: var(--tg-theme-hint-color);
+      }
+      
+      .board-name {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: block;
+        padding-right: 20px;
+      }
+      
+      /* Улучшенные стили для секций */
+      .section {
+        margin-bottom: 24px;
+      }
+      
+      .section-title {
+        font-size: 15px;
+        font-weight: 500;
+        margin: 16px 16px 8px;
+        color: var(--tg-theme-hint-color);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      
+      .section-content {
+        background-color: var(--tg-theme-secondary-bg-color);
+        border-radius: 10px;
+        overflow: hidden;
+        margin: 0 16px;
+      }
+      
+      /* Стили для приветственного текста */
+      .welcome-text {
+        margin: 20px 16px;
+        font-size: 18px;
+        text-align: center;
+        color: var(--tg-theme-text-color);
+        font-weight: 500;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+      }
+      
+      /* Индикатор загрузки */
+      .loader {
+        width: 24px;
+        height: 24px;
+        border: 3px solid rgba(0,0,0,0.1);
+        border-radius: 50%;
+        border-top-color: var(--tg-theme-button-color);
+        animation: spin 1s linear infinite;
+        margin-top: 8px;
+      }
+      
+      html.dark .loader {
+        border-color: rgba(255,255,255,0.1);
+        border-top-color: var(--tg-theme-button-color);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Базовый экран загрузки -->
+    <div id="app-loading">
+      <div class="spinner"></div>
+      <div class="loading-text">BOARD LOADING...</div>
+    </div>
+    
+    <!-- Базовый интерфейс приложения - будет виден даже без Vue -->
+    <div id="basic-app" style="display: none; height: 100%; overflow: hidden;">
+      <div class="header">
+        <h1>2ch Boards</h1>
+      </div>
+      
+      <div class="content">
+        <p class="welcome-text">
+          Загрузка списка досок...
+        </p>
+        
+        <!-- Контейнер для динамических секций -->
+        <div id="boards-container">
+          <!-- Сюда будут добавлены секции с досками -->
+        </div>
+      </div>
+    </div>
+    
+    <!-- Контейнер для Vue приложения -->
+    <div id="app" style="display: none;"></div>
+
+    <script>
+      // Определяем iOS устройства
+      var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      
+      // Базовая проверка наличия Telegram WebApp API
+      window.addEventListener('DOMContentLoaded', function() {
+        // Элементы страницы
+        var appLoading = document.getElementById('app-loading');
+        var basicApp = document.getElementById('basic-app');
+        var vueApp = document.getElementById('app');
+        var isAppHidden = false;
+        
+        // Настраиваем для iOS
+        if (isIOS) {
+          document.body.classList.add('ios');
+          
+          // Специальные настройки для iOS полноэкранного режима
+          // Предотвращаем скроллинг страницы целиком на iOS
+          document.addEventListener('touchmove', function(event) {
+            // Разрешаем скроллинг только внутри элементов с классом content
+            if (!event.target.closest('.content')) {
+              event.preventDefault();
+            }
+          }, { passive: false });
+        }
+        
+        // Инициализация Telegram API
+        var tg = null;
+        if (window.Telegram && window.Telegram.WebApp) {
+          tg = window.Telegram.WebApp;
+          
+          // Отключаем свайп вниз для закрытия приложения
+          try {
+            if (window.Telegram && window.Telegram.WebApp) {
+              var eventData = JSON.stringify({ allow_vertical_swipe: false });
+              if (window.TelegramWebviewProxy) {
+                window.TelegramWebviewProxy.postEvent('web_app_setup_swipe_behavior', eventData);
+              } else {
+                window.parent.postMessage(JSON.stringify({
+                  eventType: 'web_app_setup_swipe_behavior',
+                  eventData: { allow_vertical_swipe: false }
+                }), 'https://web.telegram.org');
+              }
+              console.log('Свайп вниз отключен');
+            }
+          } catch (e) {
+            console.error('Ошибка при отключении свайпа вниз:', e);
+          }
+          
+          // Скрываем кнопку "Назад" в левом верхнем углу
+          try {
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.BackButton) {
+              window.Telegram.WebApp.BackButton.hide();
+              console.log('Кнопка "Назад" скрыта');
+            }
+          } catch (e) {
+            console.error('Ошибка при скрытии кнопки "Назад":', e);
+          }
+          
+          // Блокировка ориентации экрана в портретном режиме
+          try {
+            if (window.Telegram && window.Telegram.WebApp) {
+              var orientationData = JSON.stringify({ locked: true });
+              if (window.TelegramWebviewProxy) {
+                window.TelegramWebviewProxy.postEvent('web_app_toggle_orientation_lock', orientationData);
+              } else {
+                window.parent.postMessage(JSON.stringify({
+                  eventType: 'web_app_toggle_orientation_lock',
+                  eventData: { locked: true }
+                }), 'https://web.telegram.org');
+              }
+              console.log('Ориентация экрана заблокирована');
+            }
+          } catch (e) {
+            console.error('Ошибка при блокировке ориентации экрана:', e);
+          }
+          
+          // Применяем темную тему если нужно
+          if (tg.colorScheme === 'dark') {
+            document.documentElement.classList.add('dark');
+          }
+          
+          // Настройка переменных CSS на основе Telegram темы
+          if (tg.themeParams) {
+            document.documentElement.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color);
+            document.documentElement.style.setProperty('--tg-theme-text-color', tg.themeParams.text_color);
+            document.documentElement.style.setProperty('--tg-theme-hint-color', tg.themeParams.hint_color);
+            document.documentElement.style.setProperty('--tg-theme-link-color', tg.themeParams.link_color);
+            document.documentElement.style.setProperty('--tg-theme-button-color', tg.themeParams.button_color);
+            document.documentElement.style.setProperty('--tg-theme-button-text-color', tg.themeParams.button_text_color);
+            document.documentElement.style.setProperty('--tg-theme-secondary-bg-color', tg.themeParams.secondary_bg_color);
+          }
+          
+          // Функция активации полноэкранного режима
+          var toggleFullScreen = function() {
+            try {
+              // Скрываем кнопки
+              if (window.Telegram && window.Telegram.WebApp) {
+                if (window.Telegram.WebApp.BackButton) window.Telegram.WebApp.BackButton.hide();
+                if (window.Telegram.WebApp.MainButton) window.Telegram.WebApp.MainButton.hide();
+                if (window.Telegram.WebApp.disableSwipeToClose) window.Telegram.WebApp.disableSwipeToClose();
+              }
+              
+              // Добавляем класс для iOS
+              if (isIOS) document.body.classList.add('ios-fullscreen');
+              
+              // Расширяем окно всеми доступными методами
+              if (tg.expand) tg.expand();
+              if (tg.requestFullscreen) tg.requestFullscreen();
+              if (window.Telegram && window.Telegram.WebApp) {
+                if (window.Telegram.WebApp.expand) window.Telegram.WebApp.expand();
+                if (window.Telegram.WebApp.setViewportHeight) window.Telegram.WebApp.setViewportHeight(1.0);
+              }
+              
+              // Отправляем событие для расширения
+              try {
+                var expandData = JSON.stringify({force: true});
+                if (window.TelegramWebviewProxy) {
+                  window.TelegramWebviewProxy.postEvent('web_app_expand', expandData);
+                } else {
+                  window.parent.postMessage(JSON.stringify({
+                    eventType: 'web_app_expand',
+                    eventData: {force: true}
+                  }), '*');
+                }
+              } catch (e) {}
+              
+              // Устанавливаем viewport
+              var viewportMeta = document.querySelector('meta[name="viewport"]');
+              if (viewportMeta) {
+                viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
+              }
+            } catch (e) {
+              console.error('Ошибка полноэкранного режима:', e);
+            }
+          };
+
+          // Автоматически активируем полноэкранный режим при загрузке
+          // Функция активации полноэкранного режима с повторами
+          var activateFullScreenMode = function(attempts) {
+            attempts = attempts || 0;
+            var maxAttempts = isIOS ? 3 : 2;
+            try {
+              toggleFullScreen();
+              if (isIOS && attempts < maxAttempts) {
+                setTimeout(function() {
+                  activateFullScreenMode(attempts + 1);
+                }, 300);
+              }
+            } catch (e) {
+              if (attempts < maxAttempts) {
+                setTimeout(function() {
+                  activateFullScreenMode(attempts + 1);
+                }, 300);
+              }
+            }
+          };
+          
+          // Запускаем активацию полноэкранного режима
+          setTimeout(activateFullScreenMode, isIOS ? 500 : 200);
+          
+          // Дополнительные события для iOS
+          if (isIOS) {
+            // При загрузке страницы
+            window.addEventListener('load', function() {
+              setTimeout(activateFullScreenMode, 500);
+            });
+            
+            // При возвращении на страницу
+            document.addEventListener('visibilitychange', function() {
+              if (!document.hidden) setTimeout(activateFullScreenMode, 300);
+            });
+            
+            // При получении фокуса
+            window.addEventListener('focus', function() {
+              setTimeout(activateFullScreenMode, 300);
+            });
+            
+            // При восстановлении из кэша
+            window.addEventListener('pageshow', function(event) {
+              if (event.persisted) setTimeout(activateFullScreenMode, 300);
+            });
+          }
+          
+          // Загрузка данных о досках
+          function loadBoards() {
+            var welcomeText = document.querySelector('.welcome-text');
+            var boardsContainer = document.getElementById('boards-container');
+            
+            // Показываем индикатор загрузки
+            welcomeText.innerHTML = 'Загрузка списка досок... <div class="loader"></div>';
+            
+            // Функция для создания секции с досками
+            function createBoardSection(category, boards) {
+              var section = document.createElement('div');
+              section.className = 'section';
+              
+              var title = document.createElement('div');
+              title.className = 'section-title';
+              title.textContent = category;
+              section.appendChild(title);
+              
+              var content = document.createElement('div');
+              content.className = 'section-content';
+              
+              // Создаем список досок
+              var boardsList = document.createElement('div');
+              boardsList.className = 'boards-list';
+              
+              boards.forEach(function(board) {
+                var boardItem = document.createElement('div');
+                boardItem.className = 'board-item';
+                boardItem.setAttribute('data-id', board.id);
+                
+                var boardName = document.createElement('span');
+                boardName.className = 'board-name';
+                boardName.textContent = '/' + board.id + '/ - ' + board.name;
+                
+                boardItem.appendChild(boardName);
+                boardsList.appendChild(boardItem);
+                
+                // Добавляем обработчик клика
+                boardItem.addEventListener('click', function() {
+                  var boardId = this.getAttribute('data-id');
+                  var boardName = this.querySelector('.board-name').textContent;
+                  
+                  // Сохраняем информацию о доске в localStorage
+                  localStorage.setItem('boardInfo_' + boardId, JSON.stringify({
+                    id: boardId,
+                    name: boardName
+                  }));
+                  
+                  // Показываем небольшую анимацию нажатия
+                  this.style.backgroundColor = 'rgba(0,0,0,0.05)';
+                  setTimeout(() => {
+                    this.style.backgroundColor = '';
+                    // Переходим на страницу доски в нашем приложении
+                    window.location.href = '#/board/' + boardId;
+                  }, 150);
+                });
+              });
+              
+              content.appendChild(boardsList);
+              section.appendChild(content);
+              
+              return section;
+            }
+            
+            // Загружаем данные из локального JSON файла
+            fetch('./boards.json')
+              .then(function(response) {
+                if (!response.ok) {
+                  throw new Error('Ошибка загрузки данных: ' + response.status);
+                }
+                return response.json();
+              })
+              .then(function(data) {
+                // Очищаем текст загрузки
+                welcomeText.textContent = 'Выберите доску:';
+                
+                // Группируем доски по категориям
+                var categories = {};
+                
+                data.boards.forEach(function(board) {
+                  var category = board.category;
+                  if (!categories[category]) {
+                    categories[category] = [];
+                  }
+                  categories[category].push(board);
+                });
+                
+                // Сортируем категории в определенном порядке
+                var categoryOrder = [
+                  "Тематика", 
+                  "Японская культура", 
+                  "Технологии", 
+                  "Творчество", 
+                  "Развлечения", 
+                  "Медиа", 
+                  "Политика", 
+                  "Разное", 
+                  "Взрослый контент"
+                ];
+                
+                // Сортируем доски внутри категорий по алфавиту
+                for (var category in categories) {
+                  if (categories.hasOwnProperty(category)) {
+                    categories[category].sort(function(a, b) {
+                      return a.name.localeCompare(b.name, 'ru');
+                    });
+                  }
+                }
+                
+                // Создаем секции в нужном порядке
+                categoryOrder.forEach(function(category) {
+                  if (categories[category]) {
+                    var section = createBoardSection(category, categories[category]);
+                    boardsContainer.appendChild(section);
+                  }
+                });
+                
+                // Скрываем экран загрузки
+                setTimeout(function() {
+                  window.hideLoading();
+                }, 300);
+              })
+              .catch(function(error) {
+                console.error('Ошибка при загрузке досок:', error);
+                welcomeText.innerHTML = 'Ошибка при загрузке досок.<br>Попробуйте позже.';
+                
+                // Скрываем экран загрузки даже при ошибке
+                setTimeout(function() {
+                  window.hideLoading();
+                }, 300);
+              });
+          }
+          
+          // Запускаем загрузку досок
+          loadBoards();
+        }
+        
+        // Функция скрытия экрана загрузки
+        window.hideLoading = function() {
+          if (isAppHidden) return; // Предотвращаем повторное скрытие
+          isAppHidden = true;
+          
+          // Скрываем экран загрузки
+          appLoading.classList.add('hidden');
+          
+          // Показываем базовый интерфейс
+          
+          try {
+            // Пытаемся монтировать Vue приложение с задержкой
+            setTimeout(function() {
+              vueApp.style.display = 'block';
+              
+              // iOS-специфичная подстройка скролла
+              if (isIOS) {
+                // Иногда для iOS требуется принудительно обновить область прокрутки
+                var content = document.querySelector('.content');
+                if (content) {
+                  content.style.overflow = 'hidden';
+                  setTimeout(function() {
+                    content.style.overflow = 'auto';
+                  }, 50);
+                }
+              }
+              
+              // Полностью удаляем экран загрузки после анимации
+              setTimeout(function() {
+                if (appLoading.parentNode) {
+                  appLoading.parentNode.removeChild(appLoading);
+                }
+              }, 300);
+            }, 100);
+          } catch (e) {
+            console.error('Ошибка при инициализации Vue:', e);
+          }
+        };
+        
+        // Инициализация Telegram WebApp и автоматическое скрытие экрана загрузки
+        setTimeout(function() {
+          if (window.Telegram && window.Telegram.WebApp) {
+            try {
+              // Сообщаем Telegram что приложение готово
+              window.Telegram.WebApp.ready();
+              window.Telegram.WebApp.expand();
+              
+              // Принудительно устанавливаем полноэкранный режим
+              document.documentElement.style.height = '100%';
+              document.body.style.height = '100%';
+            } catch (e) {
+              console.error('Ошибка при инициализации Telegram WebApp:', e);
+            }
+          }
+          
+          // ВАЖНО: Принудительно скрываем экран загрузки через 1 секунду
+          // Для iOS делаем немного дольше
+          setTimeout(function() {
+            window.hideLoading();
+          }, isIOS ? 1000 : 500);
+        }, 100);
+        
+        // Дополнительная защита: скрываем экран загрузки при загрузке страницы
+        window.addEventListener('load', function() {
+          setTimeout(function() {
+            window.hideLoading();
+          }, 500);
+        });
+      });
+    </script>
+    
+    <!-- Vue приложение (загружается отложенно) -->
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

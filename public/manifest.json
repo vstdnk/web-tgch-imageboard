@@ -1,0 +1,17 @@
+{
+  "name": "TG Imgboard",
+  "short_name": "TG Imgboard",
+  "description": "Telegram WebApp демонстрация",
+  "start_url": "/webapp-tg-imgboard/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#2678b6",
+  "icons": [
+    {
+      "src": "/webapp-tg-imgboard/apple-touch-icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+} 
